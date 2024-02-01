@@ -50,6 +50,29 @@ exports.jwtPassport = passport.use(new JwtStrategy(opts, async (jwt_payload, don
     }
 }));
 exports.verifyUser = passport.authenticate('jwt', {session: false});
+exports.facebookPassport = passport.use(new FacebookTokenStrategy({
+    clientID: config.facebook.clientId,
+    clientSecret: config.facebook.clientSecret
+}, (accessToken, refreshToken, profile, done) => {
+    User.findOne({ facebookId: profile.id })
+        .then(user => {
+            if (user) {
+                return done(null, user);
+            } else {
+                user = new User({ username: profile.displayName });
+                user.facebookId = profile.id;
+                user.firstname = profile.name.givenName;
+                user.lastname = profile.name.familyName;
+                return user.save();
+            }
+        })
+        .then(user => {
+            return done(null, user);
+        })
+        .catch(err => {
+            return done(err, false);
+        });
+}));
 
 passport.use(new LocalStrategy(User.authenticate()));
 passport.serializeUser(User.serializeUser());
