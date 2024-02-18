@@ -18,27 +18,30 @@ router.get('/', authenticate.verifyOrdinaryUser, authenticate.verifyAdmin, (req,
     }, (err) => next(err))
     .catch((err) => next(err));
 });
-router.post('/signup', async (req, res, next) => {
-  try {
-    const user = await User.register(new User({ username: req.body.username }), req.body.password);
-
-    if (req.body.firstname)
-      user.firstname = req.body.firstname;
-    if (req.body.lastname)
-      user.lastname = req.body.lastname;
-
-    await user.save();
-
-    passport.authenticate('local')(req, res, () => {
-      res.statusCode = 200;
+router.post('/signup', (req, res, next) => {
+  User.register(new User({ username: req.body.username }), req.body.password)
+    .then((user) => {
+      if (req.body.firstname) {
+        user.firstname = req.body.firstname;
+      }
+      if (req.body.lastname) {
+        user.lastname = req.body.lastname;
+      }
+      return user.save();
+    })
+    .then((newUser => {
+      passport.authenticate('local')(req, res, () => {
+        var token = authenticate.getToken({ _id: req.user._id });
+        res.statusCode = 200;
+        res.setHeader('Content-Type', 'application/json');
+        res.json({ success: true, token: token, status: 'Registration Successful!' });
+      });
+    }))
+    .catch((err) => {
+      res.statusCode = 500;
       res.setHeader('Content-Type', 'application/json');
-      res.json({ success: true, status: 'Registration Successful!' });
+      res.json({ err: err.message });
     });
-  } catch (err) {
-    res.statusCode = 500;
-    res.setHeader('Content-Type', 'application/json');
-    res.json({ err: err.message });
-  }
 });
 router.post('/login', passport.authenticate('local'), (req, res) => {
   var token = authenticate.getToken({ _id: req.user._id });
@@ -61,10 +64,10 @@ router.get('/logout', (req, res) => {
 
 router.get('/facebook/token', passport.authenticate('facebook-token'), (req, res) => {
   if (req.user) {
-    var token = authenticate.getToken({_id: req.user._id});
+    var token = authenticate.getToken({ _id: req.user._id });
     res.statusCode = 200;
     res.setHeader('Content-Type', 'application/json');
-    res.json({success: true, token: token, status: 'You are successfully logged in!'});
+    res.json({ success: true, token: token, status: 'You are successfully logged in!' });
   }
 });
 
