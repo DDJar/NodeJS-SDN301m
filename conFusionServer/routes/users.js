@@ -8,7 +8,7 @@ var authenticate = require('../authenticate');
 
 
 // task 3 ass3
-router.get('/', authenticate.verifyOrdinaryUser, authenticate.verifyAdmin, (req, res, next) => {
+router.get('/', authenticate.verifyUser, authenticate.verifyAdmin, (req, res, next) => {
 
   User.find({})
     .then((user) => {
